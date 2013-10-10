@@ -1,0 +1,124 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+
+    "Description" : "An example of the managed schema custom resource",
+
+    "Parameters" : {
+        "DBUser" : {
+            "Description" : "The database admin account username",
+            "Type" : "String",
+            "Default" : "master",
+            "MinLength" : "1",
+            "MaxLength" : "16",
+            "AllowedPattern" : "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription" : "must begin with a letter and contain only alphanumeric characters."
+        },
+        "DBPassword": {
+            "NoEcho": "true",
+            "Description" : "The database admin account password",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "41"
+        },
+        "DBName" : {
+            "Description" : "Name of database",
+            "Type" : "String",
+            "Default" : "food",
+            "MinLength" : "1",
+            "MaxLength" : "64",
+            "AllowedPattern" : "[a-zA-Z0-9]*",
+            "ConstraintDescription" : "must be 1-64 alphanumeric characters"
+        },
+        "InstanceClass" : {
+            "Description" : "The InstanceClass of the RDS Database",
+            "Type" : "String",
+            "Default" : "db.m1.small"
+        },
+        "SchemaServiceToken" : {
+            "Description" : "ServiceToken of Schema Custom Resource",
+            "Type" : "String",
+            "AllowedPattern" : "arn:aws:sns:.*",
+            "ConstraintDescription" : "must be an SNS topic ARN"
+        },
+        "CustomResourceSecurityGroup" : {
+            "Description" : "Name of Security Group used by Custom Resource",
+            "Type" : "String"
+        }
+    },
+
+    "Resources" : {
+        "MyDB" : {
+            "Type" : "AWS::RDS::DBInstance",
+            "Properties" : {
+                "AllocatedStorage" : "5",
+                "DBInstanceClass" : { "Ref" : "InstanceClass" },
+                "Engine" : "MySQL",
+                "EngineVersion" : "5.6",
+                "MasterUsername" : { "Ref" : "DBUser" },
+                "MasterUserPassword" : { "Ref" : "DBPassword" },
+                "DBSecurityGroups" : [{ "Ref" : "MyDBSecurityGroup" }],
+                "DBName" : { "Ref" : "DBName" }
+            }
+        },
+
+        "MyDBSecurityGroup" : {
+            "Type" : "AWS::RDS::DBSecurityGroup",
+            "Properties" : {
+                "DBSecurityGroupIngress" : [
+                    { "EC2SecurityGroupName" : { "Ref" : "CustomResourceSecurityGroup" } },
+                    { "CIDRIP" : "0.0.0.0/0" }
+                ],
+                "GroupDescription" : "Custom Resource Access"
+            }
+        },
+
+        "MyDBSchema" : {
+            "Type" : "AWS::CloudFormation::CustomResource",
+            "Version" : "1.0",
+            "Properties" : {
+                "ServiceToken" : { "Ref" : "SchemaServiceToken" },
+                "ResourceType" : "DatabaseSchema",
+                "DatabaseURL" : {"Fn::Join" : ["", ["jdbc:mysql://", { "Fn::GetAtt" : ["MyDB", "Endpoint.Address"]}, ":", { "Fn::GetAtt" : ["MyDB", "Endpoint.Port"]}, "/", { "Ref" : "DBName" }]]},
+                "DatabaseUsername" : { "Ref" : "DBUser" },
+                "DatabasePassword" : { "Ref" : "DBPassword" },
+                "databaseChangeLog" : [
+                    {
+                        "changeSet" : {
+                            "id" : "1",
+                            "author" : "adamthom",
+                            "changes" : [
+                                {
+                                    "createTable" : {
+                                        "tableName" : "example",
+                                        "columns" : [
+                                            {
+                                                "column" : {
+                                                    "name" : "id",
+                                                    "type" : "int",
+                                                    "autoIncrement" : true,
+                                                    "constraints" : {
+                                                        "primaryKey" : true,
+                                                        "nullable" : false
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "column" : {
+                                                    "name" : "fruit",
+                                                    "type" : "varchar(255)",
+                                                    "constraints" : {
+                                                        "nullable" : false
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}

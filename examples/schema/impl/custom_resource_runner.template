@@ -1,0 +1,203 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+
+    "Description" : "Runs the managed schema custom resource",
+
+    "Parameters" : {
+        "KeyName" : {
+            "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+            "Type" : "String"
+        },
+        "InstanceType" : {
+            "Description" : "Custom resource runner instance type",
+            "Type" : "String",
+            "Default" : "t1.micro",
+            "AllowedValues" : [ "t1.micro","m1.small","m1.medium","m1.large","m1.xlarge","m2.xlarge","m2.2xlarge","m2.4xlarge","m3.xlarge","m3.2xlarge","c1.medium","c1.xlarge","cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
+            "ConstraintDescription" : "must be a valid EC2 instance type."
+        },
+        "MinSize" : {
+            "Description" : "Minimum number of custom resource runners",
+            "Type" : "Number",
+            "MinValue" : "1",
+            "Default" : "1",
+            "ConstraintDescription" : "Must have at least one runner"
+        },
+        "MaxSize" : {
+            "Description" : "Maximum number of custom resource runners",
+            "Type" : "Number",
+            "MinValue" : "1",
+            "Default" : "1",
+            "ConstraintDescription" : "Must have at least one runner"
+        },
+        "SSHLocation" : {
+            "Description" : "The IP address range that can be used to SSH to the custom resource runners",
+            "Type": "String",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "Default": "0.0.0.0/0",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+        }
+    },
+
+    "Mappings" : {
+        "AwsRegionToAMI" : {
+            "us-east-1" : { "id" : "ami-3565305c" },
+            "us-west-2" : { "id" : "ami-e23ea1d2" },
+            "us-west-1" : { "id" : "ami-5e7b4f1b" },
+            "eu-west-1" : { "id" : "ami-1e9f7869" },
+            "ap-southeast-1" : { "id" : "ami-38f2b96a" },
+            "ap-northeast-1" : { "id" : "ami-4961fe48" },
+            "ap-southeast-2" : { "id" : "ami-8948d5b3" },
+            "sa-east-1" : { "id" : "ami-916ec98c" }
+        }
+    },
+
+    "Resources" : {
+        "CustomResourcePipeline" : {
+            "Type" : "AWS::CloudFormation::Stack",
+            "Properties" : {
+                "TemplateURL" : "https://s3.amazonaws.com/test-cfninit/cr-backend-substack-template.json"
+            }
+        },
+
+        "RunnerRole" : {
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Version": "2008-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ec2.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    }]
+                },
+                "Path" : "/",
+                "Policies" : [
+                    {
+                        "PolicyName" : "CustomResourceRunner",
+                        "PolicyDocument" : {
+                            "Statement" : [
+                                {
+                                    "Effect" : "Allow",
+                                    "Action" : ["sqs:ChangeMessageVisibility", "sqs:DeleteMessage", "sqs:ReceiveMessage"],
+                                    "Resource" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueARN"] }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+
+        "RunnerInstanceProfile" : {
+            "Type" : "AWS::IAM::InstanceProfile",
+            "Properties" : {
+                "Path" : "/",
+                "Roles" : [ { "Ref" : "RunnerRole" } ]
+            }
+        },
+
+        "RunnerLaunchConfig" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "IamInstanceProfile" : { "Ref" : "RunnerInstanceProfile" },
+                "ImageId" : { "Fn::FindInMap" : ["AwsRegionToAMI", { "Ref" : "AWS::Region" }, "id"] },
+                "InstanceType" : { "Ref" : "InstanceType" },
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroups" : [ { "Ref" : "RunnerSecurityGroup" } ],
+                "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
+                    "#!/bin/bash -x\n",
+                    "exec &> /home/ec2-user/userdata.log\n",
+                    "/opt/aws/bin/cfn-init --region ", { "Ref" : "AWS::Region" }, " -s ", { "Ref" : "AWS::StackId" }, " -r RunnerLaunchConfig -v\n",
+                    "/opt/aws/bin/cfn-signal -e $? ", { "Fn::Base64" : { "Ref" : "RunnerWaitConditionHandle" }}, "\n"
+                ]] } }
+            },
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "config" : {
+                        "packages" : {
+                            "rpm" : {
+                                "aws-cfn-resource-bridge" : "https://s3.amazonaws.com/cfn-init-demo/aws-cfn-resource-bridge-0.1-1.noarch.rpm"
+                            }
+                        },
+                        "files" : {
+                            "/etc/cfn/bridge.d/schema.conf" : {
+                                "content" : { "Fn::Join" : ["", [
+                                    "[schema]\n",
+                                    "resource_type=DatabaseSchema\n",
+                                    "flatten=false\n",
+                                    "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
+                                    "timeout=600\n",
+                                    "default_action=/home/ec2-user/liquify.py\n"
+                                ]]}
+                            },
+                            "/home/ec2-user/liquify.py" : {
+                                "source" : "https://s3.amazonaws.com/cfn-init-demo/liquify.py",
+                                "mode" : "000755",
+                                "owner" : "ec2-user"
+                            },
+                            "/home/ec2-user/liquibase/lib/mysql-connector-java-bin.jar" : {
+                                "source" : "https://s3.amazonaws.com/cfn-init-demo/mysql-connector-java-5.1.26-bin.jar"
+                            }
+                        },
+                        "sources" : {
+                            "/home/ec2-user/liquibase" : "https://s3.amazonaws.com/cfn-init-demo/liquibase-3.0.5-bin.zip"
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "cfn-resource-bridge" : {
+                                    "enabled" : "true",
+                                    "ensureRunning" : "true",
+                                    "files" : ["/etc/cfn/bridge.d/schema.conf",
+                                               "/home/ec2-user/liquify.py"]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "RunnerAutoScalingGroup" : {
+            "Type" : "AWS::AutoScaling::AutoScalingGroup",
+            "Properties" : {
+                "AvailabilityZones" : { "Fn::GetAZs" : ""},
+                "LaunchConfigurationName" : { "Ref" : "RunnerLaunchConfig" },
+                "MinSize" : { "Ref" : "MinSize" },
+                "MaxSize" : { "Ref" : "MaxSize" }
+            }
+        },
+
+        "RunnerSecurityGroup" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : "SSH to the runner instances",
+                "SecurityGroupIngress" : [
+                    {
+                        "CidrIp" : { "Ref" : "SSHLocation" },
+                        "FromPort" : "22",
+                        "ToPort" : "22",
+                        "IpProtocol" : "tcp"
+                    }
+                ]
+            }
+        },
+
+        "RunnerWaitConditionHandle" : {
+            "Type" : "AWS::CloudFormation::WaitConditionHandle"
+        },
+
+        "RunnerWaitCondition" : {
+            "Type" : "AWS::CloudFormation::WaitCondition",
+            "DependsOn" : "RunnerAutoScalingGroup",
+            "Properties" : {
+                "Count" : "1",
+                "Handle" : { "Ref" : "RunnerWaitConditionHandle" },
+                "Timeout" : "600"
+            }
+        }
+    }
+}
