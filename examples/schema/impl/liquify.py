@@ -203,10 +203,7 @@ try:
 except ValueError:
     raise FatalError('Could not parse properties as JSON', -1)
 
-try:
-    event_type = event_obj['RequestType']
-except KeyError:
-    raise FatalError('RequestType not found.', -1)
+event_type = event_obj['RequestType']
 
 log.info('%s received event: %s', event_type, json.dumps(event_obj, indent=4))
 
@@ -215,13 +212,8 @@ resource_properties = event_obj.get('ResourceProperties')
 if not resource_properties:
     raise FatalError('Resource Properties not found.', -1)
 
-stack_id = event_obj.get('StackId')
-if not stack_id:
-    raise FatalError('StackId not found.', -1)
-
-logical_id = event_obj.get('LogicalResourceId')
-if not logical_id:
-    raise FatalError('LogicalResourceId not found.', -1)
+stack_id = event_obj['StackId']
+logical_id = event_obj['LogicalResourceId']
 
 Liquifier(resource_properties, event_obj.get('OldResourceProperties', {}), stack_id, logical_id) .run_event(event_type)
 
