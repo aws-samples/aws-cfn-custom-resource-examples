@@ -1,0 +1,59 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+
+    "Description" : "An example of the AMI Lookup custom resource",
+
+    "Parameters" : {
+        "InstanceType" : {
+            "Description" : "Example instance types",
+            "Type" : "String",
+            "Default" : "t1.micro",
+            "AllowedValues" : [ "t1.micro","m1.small","m1.medium","m1.large","m1.xlarge","m2.xlarge","m2.2xlarge","m2.4xlarge","m3.xlarge","m3.2xlarge","c1.medium","c1.xlarge","cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
+            "ConstraintDescription" : "must be a valid EC2 instance type."
+        },
+        "AmiLookupServiceToken" : {
+            "Description" : "ServiceToken of AMI Lookup Custom Resource",
+            "Type" : "String",
+            "AllowedPattern" : "arn:aws:sns:.*",
+            "ConstraintDescription" : "must be an SNS topic ARN"
+        }
+    },
+
+    "Resources" : {
+        "UbuntuInstance" : {
+            "Type" : "AWS::EC2::Instance",
+            "Properties" : {
+                "ImageId" : { "Ref" : "UbuntuAmi"},
+                "InstanceType" : { "Ref" : "InstanceType" }
+            }
+        },
+        "WindowsInstance" : {
+            "Type" : "AWS::EC2::Instance",
+            "Properties" : {
+                "ImageId" : { "Ref" : "WindowsAmi"},
+                "InstanceType" : { "Ref" : "InstanceType" }
+            }
+        },
+        "UbuntuAmi" : {
+            "Type" : "AWS::CloudFormation::CustomResource",
+            "Version" : "1.0",
+            "Properties" : {
+                "ServiceToken" : { "Ref" : "AmiLookupServiceToken" },
+                "ResourceType" : "AmiLookup",
+                "os": "ubuntu",
+                "arch": "64"
+            }
+        },
+        "WindowsAmi" : {
+            "Type" : "AWS::CloudFormation::CustomResource",
+            "Version" : "1.0",
+            "Properties" : {
+                "ServiceToken" : { "Ref" : "AmiLookupServiceToken" },
+                "ResourceType" : "AmiLookup",
+                "os": "nonewindows",
+                "arch": "32",
+                "version": "Server 2008"
+            }
+        }
+    }
+}

@@ -1,0 +1,78 @@
+{
+    "ubuntu": {
+        "64": {
+            "latest": "13.04",
+            "13.04": {
+                "ap-northeast-1": "ami-6dea746c",
+                "ap-southeast-1": "ami-141d5746",
+                "ap-southeast-2": "ami-f377eac9",
+                "eu-west-1": "ami-5e03e429",
+                "sa-east-1": "ami-ed47e0f0",
+                "us-east-1": "ami-ad83d7c4",
+                "us-west-1": "ami-7e37033b",
+                "us-west-2": "ami-12fe6022"
+            },
+            "12.04": {
+                "ap-northeast-1": "ami-d9118cd8",
+                "ap-southeast-1": "ami-e07239b2",
+                "ap-southeast-2": "ami-6be67b51",
+                "eu-west-1": "ami-78cf2a0f",
+                "sa-east-1": "ami-bdcd6aa0",
+                "us-east-1": "ami-53b1ff3a",
+                "us-west-1": "ami-40350005",
+                "us-west-2": "ami-8635a9b6"
+            }
+        },
+        "32": {
+            "latest": "12.04",
+            "12.04": {
+                "ap-northeast-1": "ami-d7118cd6",
+                "ap-southeast-1": "ami-e27239b0",
+                "ap-southeast-2": "ami-75e67b4f",
+                "eu-west-1": "ami-7ccf2a0b",
+                "sa-east-1": "ami-83cd6a9e",
+                "us-east-1": "ami-51b1ff38",
+                "us-west-1": "ami-44350001",
+                "us-west-2": "ami-8435a9b4"
+            }
+        }
+    },
+    "windows": {
+        "64": {
+            "latest": "server 2012",
+            "server 2012": {
+                "ap-northeast-1": "ami-cddf43cc",
+                "ap-southeast-1": "ami-268cc774",
+                "ap-southeast-2": "ami-c99904f3",
+                "eu-west-1": "ami-a63edbd1",
+                "sa-east-1": "ami-dfd374c2",
+                "us-east-1": "ami-173d747e",
+                "us-west-1": "ami-a02015e5",
+                "us-west-2": "ami-60dc4350"
+            },
+            "server 2008": {
+                "ap-northeast-1": "ami-0fdf430e",
+                "ap-southeast-1": "ami-628cc730",
+                "ap-southeast-2": "ami-9d9904a7",
+                "eu-west-1": "ami-463edb31",
+                "sa-east-1": "ami-97d3748a",
+                "us-east-1": "ami-7f236a16",
+                "us-west-1": "ami-1a20155f",
+                "us-west-2": "ami-1b3d7472"
+            }
+        },
+        "32": {
+            "latest": "server 2008",
+            "server 2008": {
+                "ap-northeast-1": "ami-3dd8443c",
+                "ap-southeast-1": "ami-ca8cc798",
+                "ap-southeast-2": "ami-2b980511",
+                "eu-west-1": "ami-803edbf7",
+                "sa-east-1": "ami-cbd374d6",
+                "us-east-1": "ami-1b3d7472",
+                "us-west-1": "ami-ba2015ff",
+                "us-west-2": "ami-b0dc4380"
+            }
+        }
+    }
+}
