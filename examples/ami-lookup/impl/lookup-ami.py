@@ -67,6 +67,10 @@ request_type = os.getenv('Event_RequestType')
 if not request_type:
     raise FatalError(u"Event_RequestType was not valid.")
 
+stack_id = os.getenv('Event_StackId')
+if not stack_id:
+    raise FatalError(u"Event_StackId is a required attribute.")
+
 if request_type is not 'Delete':
     # Download the AMI manifest
     try:
@@ -77,7 +81,6 @@ if request_type is not 'Delete':
         raise FatalError(u"Service not configured: %s" % (str(e)))
 
     # Pull in our options
-    stack_id = os.getenv('Event_StackId')
     operating_system = os.getenv('Event_ResourceProperties_os')
     architecture = os.getenv('Event_ResourceProperties_arch', '64')
     version = os.getenv('Event_ResourceProperties_version')
