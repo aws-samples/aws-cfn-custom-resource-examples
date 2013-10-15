@@ -1,36 +1,22 @@
 {
     "AWSTemplateFormatVersion" : "2010-09-09",
 
-    "Description" : "Runs the managed schema custom resource",
+    "Description" : "An example of the volume mount/dismount custom resource",
 
     "Parameters" : {
         "KeyName" : {
-            "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+            "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the Instance",
             "Type" : "String"
         },
         "InstanceType" : {
-            "Description" : "Custom resource runner instance type",
+            "Description" : "Instance type",
             "Type" : "String",
             "Default" : "t1.micro",
             "AllowedValues" : [ "t1.micro","m1.small","m1.medium","m1.large","m1.xlarge","m2.xlarge","m2.2xlarge","m2.4xlarge","m3.xlarge","m3.2xlarge","c1.medium","c1.xlarge","cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
             "ConstraintDescription" : "must be a valid EC2 instance type."
         },
-        "MinSize" : {
-            "Description" : "Minimum number of custom resource runners",
-            "Type" : "Number",
-            "MinValue" : "1",
-            "Default" : "1",
-            "ConstraintDescription" : "Must have at least one runner"
-        },
-        "MaxSize" : {
-            "Description" : "Maximum number of custom resource runners",
-            "Type" : "Number",
-            "MinValue" : "1",
-            "Default" : "1",
-            "ConstraintDescription" : "Must have at least one runner"
-        },
         "SSHLocation" : {
-            "Description" : "The IP address range that can be used to SSH to the custom resource runners",
+            "Description" : "The IP address range that can be used to SSH to the instance",
             "Type": "String",
             "MinLength": "9",
             "MaxLength": "18",
@@ -61,7 +47,7 @@
             }
         },
 
-        "RunnerRole" : {
+        "ExampleRole" : {
             "Type" : "AWS::IAM::Role",
             "Properties" : {
                 "AssumeRolePolicyDocument" : {
@@ -77,7 +63,7 @@
                 "Path" : "/",
                 "Policies" : [
                     {
-                        "PolicyName" : "CustomResourceRunner",
+                        "PolicyName" : "DismountExample",
                         "PolicyDocument" : {
                             "Statement" : [
                                 {
@@ -92,27 +78,27 @@
             }
         },
 
-        "RunnerInstanceProfile" : {
+        "ExampleInstanceProfile" : {
             "Type" : "AWS::IAM::InstanceProfile",
             "Properties" : {
                 "Path" : "/",
-                "Roles" : [ { "Ref" : "RunnerRole" } ]
+                "Roles" : [ { "Ref" : "ExampleRole" } ]
             }
         },
 
-        "RunnerLaunchConfig" : {
-            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+        "ExampleInstance" : {
+            "Type" : "AWS::EC2::Instance",
             "Properties" : {
-                "IamInstanceProfile" : { "Ref" : "RunnerInstanceProfile" },
+                "IamInstanceProfile" : { "Ref" : "ExampleInstanceProfile" },
                 "ImageId" : { "Fn::FindInMap" : ["AwsRegionToAMI", { "Ref" : "AWS::Region" }, "id"] },
                 "InstanceType" : { "Ref" : "InstanceType" },
                 "KeyName" : { "Ref" : "KeyName" },
-                "SecurityGroups" : [ { "Ref" : "RunnerSecurityGroup" } ],
+                "SecurityGroups" : [ { "Ref" : "ExampleSecurityGroup" } ],
                 "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
                     "#!/bin/bash -x\n",
                     "exec &> /home/ec2-user/userdata.log\n",
-                    "/opt/aws/bin/cfn-init --region ", { "Ref" : "AWS::Region" }, " -s ", { "Ref" : "AWS::StackId" }, " -r RunnerLaunchConfig -v\n",
-                    "/opt/aws/bin/cfn-signal -e $? ", { "Fn::Base64" : { "Ref" : "RunnerWaitConditionHandle" }}, "\n"
+                    "/opt/aws/bin/cfn-init --region ", { "Ref" : "AWS::Region" }, " -s ", { "Ref" : "AWS::StackId" }, " -r ExampleInstance -v\n",
+                    "/opt/aws/bin/cfn-signal -e $? ", { "Fn::Base64" : { "Ref" : "ExampleWaitConditionHandle" }}, "\n"
                 ]] } }
             },
             "Metadata" : {
@@ -124,35 +110,36 @@
                             }
                         },
                         "files" : {
-                            "/etc/cfn/bridge.d/schema.conf" : {
+                            "/etc/cfn/bridge.d/mount.conf" : {
                                 "content" : { "Fn::Join" : ["", [
-                                    "[schema]\n",
-                                    "resource_type=DatabaseSchema\n",
-                                    "flatten=false\n",
+                                    "[mount]\n",
+                                    "resource_type=VolumeMount\n",
                                     "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
-                                    "timeout=600\n",
-                                    "default_action=/home/ec2-user/liquify.py\n"
+                                    "timeout=120\n",
+                                    "create_action=/home/ec2-user/create.sh\n",
+                                    "update_action=echo {}\n",
+                                    "delete_action=/home/ec2-user/delete.sh\n"
                                 ]]}
                             },
-                            "/home/ec2-user/liquify.py" : {
-                                "source" : "https://s3.amazonaws.com/cfn-init-demo/liquify.py",
+                            "/home/ec2-user/create.sh" : {
+                                "source" : "https://s3.amazonaws.com/cfn-init-demo/create.sh",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
-                            "/home/ec2-user/liquibase/lib/mysql-connector-java-bin.jar" : {
-                                "source" : "https://s3.amazonaws.com/cfn-init-demo/mysql-connector-java-5.1.26-bin.jar"
+                            "/home/ec2-user/delete.sh" : {
+                                "source" : "https://s3.amazonaws.com/cfn-init-demo/delete.sh",
+                                "mode" : "000755",
+                                "owner" : "ec2-user"
                             }
-                        },
-                        "sources" : {
-                            "/home/ec2-user/liquibase" : "https://s3.amazonaws.com/cfn-init-demo/liquibase-3.0.5-bin.zip"
                         },
                         "services" : {
                             "sysvinit" : {
                                 "cfn-resource-bridge" : {
                                     "enabled" : "true",
                                     "ensureRunning" : "true",
-                                    "files" : ["/etc/cfn/bridge.d/schema.conf",
-                                               "/home/ec2-user/liquify.py"]
+                                    "files" : ["/etc/cfn/bridge.d/mount.conf",
+                                               "/home/ec2-user/create.sh",
+                                               "/home/ec2-user/delete.sh"]
                                 }
                             }
                         }
@@ -161,20 +148,41 @@
             }
         },
 
-        "RunnerAutoScalingGroup" : {
-            "Type" : "AWS::AutoScaling::AutoScalingGroup",
+        "ExampleVolume" : {
+            "Type" : "AWS::EC2::Volume",
             "Properties" : {
-                "AvailabilityZones" : { "Fn::GetAZs" : ""},
-                "LaunchConfigurationName" : { "Ref" : "RunnerLaunchConfig" },
-                "MinSize" : { "Ref" : "MinSize" },
-                "MaxSize" : { "Ref" : "MaxSize" }
+                "AvailabilityZone" : { "Fn::GetAtt" : ["ExampleInstance", "AvailabilityZone"] },
+                "Size" : "10"
             }
         },
 
-        "RunnerSecurityGroup" : {
+        "ExampleVolumeAttachment" : {
+            "Type" : "AWS::EC2::VolumeAttachment",
+            "Properties" : {
+                "Device" : "/dev/sdh",
+                "InstanceId" : { "Ref" : "ExampleInstance" },
+                "VolumeId" : { "Ref" : "ExampleVolume" }
+            }
+        },
+
+        "ExampleVolumeMount" : {
+            "Type" : "AWS::CloudFormation::CustomResource",
+            "Version" : "1.0",
+            "DependsOn" : ["ExampleVolumeAttachment", "ExampleWaitCondition"],
+            "Properties" : {
+                "ServiceToken" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceTopicARN"] },
+                "ResourceType" : "VolumeMount",
+                "Device" : "/dev/sdh",
+                "MountPoint" : "/mnt/analysis",
+                "FsType" : "ext3",
+                "Format" : "true"
+            }
+        },
+
+        "ExampleSecurityGroup" : {
             "Type" : "AWS::EC2::SecurityGroup",
             "Properties" : {
-                "GroupDescription" : "SSH to the runner instances",
+                "GroupDescription" : "SSH to the instance",
                 "SecurityGroupIngress" : [
                     {
                         "CidrIp" : { "Ref" : "SSHLocation" },
@@ -186,16 +194,16 @@
             }
         },
 
-        "RunnerWaitConditionHandle" : {
+        "ExampleWaitConditionHandle" : {
             "Type" : "AWS::CloudFormation::WaitConditionHandle"
         },
 
-        "RunnerWaitCondition" : {
+        "ExampleWaitCondition" : {
             "Type" : "AWS::CloudFormation::WaitCondition",
-            "DependsOn" : "RunnerAutoScalingGroup",
+            "DependsOn" : "ExampleInstance",
             "Properties" : {
                 "Count" : "1",
-                "Handle" : { "Ref" : "RunnerWaitConditionHandle" },
+                "Handle" : { "Ref" : "ExampleWaitConditionHandle" },
                 "Timeout" : "600"
             }
         }
