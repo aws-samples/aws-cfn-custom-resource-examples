@@ -115,14 +115,19 @@
                                     "[mount]\n",
                                     "resource_type=VolumeMount\n",
                                     "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
-                                    "timeout=120\n",
+                                    "timeout=600\n",
                                     "create_action=/home/ec2-user/create.sh\n",
-                                    "update_action=echo {}\n",
+                                    "update_action=/home/ec2-user/update.sh\n",
                                     "delete_action=/home/ec2-user/delete.sh\n"
                                 ]]}
                             },
                             "/home/ec2-user/create.sh" : {
                                 "source" : "https://s3.amazonaws.com/cfn-init-demo/create.sh",
+                                "mode" : "000755",
+                                "owner" : "ec2-user"
+                            },
+                            "/home/ec2-user/update.sh" : {
+                                "source" : "https://s3.amazonaws.com/cfn-init-demo/update.sh",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
@@ -139,6 +144,7 @@
                                     "ensureRunning" : "true",
                                     "files" : ["/etc/cfn/bridge.d/mount.conf",
                                                "/home/ec2-user/create.sh",
+                                               "/home/ec2-user/update.sh",
                                                "/home/ec2-user/delete.sh"]
                                 }
                             }
@@ -159,7 +165,7 @@
         "ExampleVolumeAttachment" : {
             "Type" : "AWS::EC2::VolumeAttachment",
             "Properties" : {
-                "Device" : "/dev/sdh",
+                "Device" : "/dev/xvdh",
                 "InstanceId" : { "Ref" : "ExampleInstance" },
                 "VolumeId" : { "Ref" : "ExampleVolume" }
             }
@@ -172,7 +178,7 @@
             "Properties" : {
                 "ServiceToken" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceTopicARN"] },
                 "ResourceType" : "VolumeMount",
-                "Device" : "/dev/sdh",
+                "Device" : "/dev/xvdh",
                 "MountPoint" : "/mnt/analysis",
                 "FsType" : "ext3",
                 "Format" : "true"

@@ -199,5 +199,16 @@
                 "Timeout" : "600"
             }
         }
+    },
+
+    "Outputs" : {
+        "SecurityGroup" : {
+            "Description" : "Security group of the runner (to permit it to access the database)",
+            "Value" : { "Ref" : "RunnerSecurityGroup" }
+        },
+        "ServiceToken" : {
+            "Description" : "Service token of schema custom resource",
+            "Value" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceTopicARN"] }
+        }
     }
 }
