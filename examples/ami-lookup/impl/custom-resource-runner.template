@@ -223,7 +223,7 @@
         }
     },
     "Outputs" : {
-        "AmiLookupServiceToken" : {
+        "ServiceToken" : {
             "Value" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceTopicARN"] },
             "Description" : "Service token to use in CustomResource definitions"
         }

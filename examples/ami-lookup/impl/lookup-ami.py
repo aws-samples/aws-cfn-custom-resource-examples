@@ -140,5 +140,9 @@ if audit:
         raise FatalError(u"Unhandled exception creating audit log: %s" % e)
 
 # Write out our successful response!
-print u'{ "PhysicalResourceId" : "%s", "Data": { "os": "%s", "arch": "%s", "version": "%s", "region": "%s", ' \
-      u'"ami": "%s" } }' % (ami, operating_system.lower(), architecture.lower(), version.lower(), region.lower(), ami)
+if request_type != 'Delete':
+    print u'{ "PhysicalResourceId" : "%s", "Data": { "os": "%s", "arch": "%s", "version": "%s", "region": "%s", ' \
+          u'"ami": "%s" } }' % (ami, operating_system.lower(), architecture.lower(), version.lower(), region.lower(),
+                                ami)
+else:
+    print u"{}"

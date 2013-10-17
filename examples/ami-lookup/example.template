@@ -50,7 +50,7 @@
             "Properties" : {
                 "ServiceToken" : { "Ref" : "AmiLookupServiceToken" },
                 "ResourceType" : "AmiLookup",
-                "os": "nonewindows",
+                "os": "windows",
                 "arch": "32",
                 "version": "Server 2008"
             }
