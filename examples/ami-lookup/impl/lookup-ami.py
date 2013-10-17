@@ -32,7 +32,7 @@ logging.getLogger().addHandler(handler)
 log = logging.getLogger('lookup-ami')
 log.setLevel(logging.INFO)
 
-parser = ArgumentParser(prog='find-ami')
+parser = ArgumentParser(prog='lookup-ami')
 parser.add_argument("-s", "--source", help="The source url for the ami information", dest="source")
 parser.add_argument("-r", "--region", help="The region the audit trail will be written to in DynamoDB", dest="region")
 parser.add_argument("-t", "--audit-table", help="The DynamoDB table name to write the audit trail", dest="table_name")
