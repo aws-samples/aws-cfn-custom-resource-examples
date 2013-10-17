@@ -71,7 +71,7 @@ stack_id = os.getenv('Event_StackId')
 if not stack_id:
     raise FatalError(u"Event_StackId is a required attribute.")
 
-if request_type is not 'Delete':
+if request_type != 'Delete':
     # Download the AMI manifest
     try:
         r = requests.get(options.source, verify=True)
