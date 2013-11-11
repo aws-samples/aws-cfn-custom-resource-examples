@@ -120,7 +120,7 @@
                     "config" : {
                         "packages" : {
                             "rpm" : {
-                                "aws-cfn-resource-bridge" : "https://s3.amazonaws.com/cfn-init-demo/aws-cfn-resource-bridge-0.1-3.noarch.rpm"
+                                "aws-cfn-resource-bridge" : "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-resource-bridge-0.1-4.noarch.rpm"
                             }
                         },
                         "files" : {
