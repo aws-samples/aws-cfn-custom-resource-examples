@@ -1,0 +1,167 @@
+#!/usr/bin/env python
+
+#==============================================================================
+# Copyright 2013 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#==============================================================================
+from argparse import ArgumentParser
+import ConfigParser
+import StringIO
+import logging
+import logging.config
+import os
+import threading
+import datetime
+import sys
+
+from runner import AutoScalingNotificationRunner
+
+default_confdir = '/etc/cfn'
+
+parser = ArgumentParser(prog='cr-dns-processor')
+
+parser.add_argument("-c", "--config", help="The configuration directory (default: %s)" % default_confdir,
+                    dest="config_path", default=default_confdir)
+parser.add_argument("--no-daemon", help="Do not daemonize", dest="no_daemon", action="store_true")
+parser.add_argument("-v", "--verbose", help="Enables verbose logging", action="store_true", dest="verbose")
+parser.add_argument("-t", "--threads", help="Configure the number of threads to use", type=int, dest="threads")
+
+options = parser.parse_args()
+
+def _parse_config(config_file):
+    """Parses the provided configuration; returns options from all sections merged
+
+    When provided with a valid configuration file, will load all of the sections and single dictionary
+    of all the options merged together.
+    """
+    config = ConfigParser.SafeConfigParser()
+    config.read(config_file)
+
+    options = {}
+    for section in config.sections():
+        # Convert configuration options into dictionary (lowercasing all keys)
+        options.update(dict((i[0].lower(), i[1]) for i in config.items(section)))
+
+    return options
+
+def _load_configuration(config_dir):
+    """Locates and parses configuration files
+
+    Given a configuration directory, reads in the cr-dns-processor.conf file.
+    """
+    config_file = os.path.join(config_dir, 'cr-dns-processor.conf')
+
+    # Add the default configuration file if it exists
+    if not os.path.isfile(config_file):
+        raise ValueError(u"Could not find default configuration file, %s" % config_file)
+
+    # Load our configuration
+    options = _parse_config(config_file)
+
+    # Fail if we have not found any options.
+    if not options:
+        raise ValueError(u"No configuration options were defined in %s" % config_file)
+
+    if not options.get('queue_url') or not options.get('region'):
+        raise ValueError(u"Configuration must contain a queue_url and region option")
+
+    if not options.get('table'):
+        raise ValueError(u"Configuration must contain a table option")
+
+    return options
+
+def main():
+    # Configure our logger
+    _config = """[loggers]
+keys=root,crdnsprocessor
+[handlers]
+keys=default
+[formatters]
+keys=amzn
+[logger_root]
+level=NOTSET
+handlers=default
+[logger_crdnsprocessor]
+level=NOTSET
+handlers=default
+qualname=cr.dnsprocessor
+propagate=0
+[handler_default]
+class=handlers.RotatingFileHandler
+level=%(conf_level)s
+formatter=amzn
+args=('/var/log/cr-dns-processor.log', 'a', 5242880, 5, 'UTF-8')
+[formatter_amzn]
+format=%(asctime)s [%(levelname)s] %(message)s
+datefmt=
+class=logging.Formatter
+"""
+    logging.config.fileConfig(StringIO.StringIO(_config), {'conf_level': "DEBUG" if options.verbose else "INFO"})
+
+    # Require there to be a configuration path, default should handle when not specified.
+    if not options.config_path:
+        print >> sys.stderr, u"Error: A configuration path must be specified"
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+
+    # Ensure that the configuration path really exists, since we expect the config file to be there.
+    if not os.path.isdir(options.config_path):
+        print >> sys.stderr, u"Error: Could not find configuration at %s" % options.config_path
+        sys.exit(1)
+
+    try:
+        config = _load_configuration(options.config_path)
+    except Exception, ex:
+        logging.exception("Failed to load configuration")
+        print >> sys.stderr, u"Error: Failed to load configuration: %s" % str(ex)
+        sys.exit(1)
+
+    # Construct our runner to monitor queue
+    runner = AutoScalingNotificationRunner(config['queue_url'], config['region'], config['table'], num_threads=options.threads)
+
+    # Start processing messages
+    runner.process_messages()
+
+    wait_event = threading.Event()
+
+    # Wait until process is killed
+    while True:
+        try:
+            # do this instead of wait() without timeout
+            # as for some reason interrupts will not happen unless you wait for a specified time
+            # (even if the wait is for a long time, the interrupt comes immediately)
+            wait_event.wait(60)
+        except KeyboardInterrupt:
+            sys.exit(0)
+
+if options.no_daemon:
+    main()
+else:
+    try:
+        import daemon
+    except ImportError:
+        print >> sys.stderr, u"Daemon library was not installed; please install python-daemon"
+        sys.exit(1)
+
+    try:
+        from daemon import pidlockfile
+    except ImportError:
+        from daemon import pidfile as pidlockfile
+
+    with daemon.DaemonContext(pidfile=pidlockfile.TimeoutPIDLockFile('/var/run/cr-dns-processor.pid', 300)):
+        try:
+            main()
+        except Exception, e:
+            logging.exception("Unhandled exception")
+            sys.exit(1)

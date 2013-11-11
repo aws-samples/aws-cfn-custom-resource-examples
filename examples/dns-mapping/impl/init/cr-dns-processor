@@ -1,0 +1,59 @@
+#!/bin/bash
+#
+# cr-dns-processor    DNS processor custom resource daemon
+#
+# chkconfig:    - 80 20
+#
+# description:  Creates a DNS entry when an AutoScaling event is received
+# processname:  cr-dns-processor
+# config: /etc/cfn/cr-dns-processor.conf
+# pidfile: /var/run/cr-dns-processor.pid
+#
+# source function library
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+
+start() {
+        echo -n $"Starting cr-dns-processor: "
+        cd /home/ec2-user; daemon /home/ec2-user/cr-dns-processor
+        RETVAL=$?
+        echo
+        [ $RETVAL -eq 0 ] && touch /var/lock/subsys/cr-dns-processor
+}
+
+stop() {
+        echo -n $"Stopping cr-dns-processor: "
+        killproc -p /var/run/cr-dns-processor.pid cr-dns-processor
+        echo
+        [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/cr-dns-processor
+}
+
+restart() {
+        stop
+        start
+}
+
+case "$1" in
+  start)
+        start
+        ;;
+  stop)
+        stop
+        ;;
+  restart|force-reload|reload)
+        restart
+        ;;
+  condrestart|try-restart)
+        [ -f /var/lock/subsys/cr-dns-processor ] && restart
+        ;;
+  status)
+        status -p /var/run/cr-dns-processor.pid cr-dns-processor
+        RETVAL=$?
+        ;;
+  *)
+        echo $"Usage: $0 {start|stop|status|restart|reload|force-reload|condrestart}"
+        exit 1
+esac
+
+exit $RETVAL
