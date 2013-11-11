@@ -43,7 +43,7 @@
         "CustomResourcePipeline" : {
             "Type" : "AWS::CloudFormation::Stack",
             "Properties" : {
-                "TemplateURL" : "https://s3.amazonaws.com/test-cfninit/cr-backend-substack-template.json"
+                "TemplateURL" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/cr-backend-substack-template.json"
             }
         },
 
@@ -122,17 +122,17 @@
                                 ]]}
                             },
                             "/home/ec2-user/create.sh" : {
-                                "source" : "https://s3.amazonaws.com/cfn-init-demo/create.sh",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/mount/impl/create.sh",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/home/ec2-user/update.sh" : {
-                                "source" : "https://s3.amazonaws.com/cfn-init-demo/update.sh",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/mount/impl/update.sh",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/home/ec2-user/delete.sh" : {
-                                "source" : "https://s3.amazonaws.com/cfn-init-demo/delete.sh",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/mount/impl/delete.sh",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             }

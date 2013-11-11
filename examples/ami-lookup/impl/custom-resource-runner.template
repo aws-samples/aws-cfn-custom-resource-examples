@@ -40,7 +40,7 @@
         "AmiManifestUrl": {
             "Description" : "URL of the ami manifest file to use for lookups",
             "Type" : "String",
-            "Default" : "https://s3.amazonaws.com/test-cfninit/example-manifest.json"
+            "Default" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/ami-lookup/impl/example-manifest.json"
         }
     },
 
@@ -61,7 +61,7 @@
         "CustomResourcePipeline" : {
             "Type" : "AWS::CloudFormation::Stack",
             "Properties" : {
-                "TemplateURL" : "https://s3.amazonaws.com/test-cfninit/cr-backend-substack-template.json"
+                "TemplateURL" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/cr-backend-substack-template.json"
             }
         },
 
@@ -163,7 +163,7 @@
                                 ]]}
                             },
                             "/home/ec2-user/lookup-ami.py" : {
-                                "source" : "https://s3.amazonaws.com/test-cfninit/lookup-ami.py",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/ami-lookup/impl/lookup-ami.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             }

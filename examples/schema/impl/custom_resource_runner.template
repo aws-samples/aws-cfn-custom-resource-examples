@@ -57,7 +57,7 @@
         "CustomResourcePipeline" : {
             "Type" : "AWS::CloudFormation::Stack",
             "Properties" : {
-                "TemplateURL" : "https://s3.amazonaws.com/test-cfninit/cr-backend-substack-template.json"
+                "TemplateURL" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/cr-backend-substack-template.json"
             }
         },
 
@@ -121,6 +121,9 @@
                         "packages" : {
                             "rpm" : {
                                 "aws-cfn-resource-bridge" : "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-resource-bridge-0.1-4.noarch.rpm"
+                            },
+                            "yum" : {
+                                "mysql-connector-java" : []
                             }
                         },
                         "files" : {
@@ -135,16 +138,17 @@
                                 ]]}
                             },
                             "/home/ec2-user/liquify.py" : {
-                                "source" : "https://s3.amazonaws.com/cfn-init-demo/liquify.py",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/schema/impl/liquify.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/home/ec2-user/liquibase/lib/mysql-connector-java-bin.jar" : {
-                                "source" : "https://s3.amazonaws.com/cfn-init-demo/mysql-connector-java-5.1.26-bin.jar"
+                                "content" : "/usr/share/java/mysql-connector-java.jar",
+                                "mode" : "120644"
                             }
                         },
                         "sources" : {
-                            "/home/ec2-user/liquibase" : "https://s3.amazonaws.com/cfn-init-demo/liquibase-3.0.5-bin.zip"
+                            "/home/ec2-user/liquibase" : "https://s3.amazonaws.com/cloudformation-examples/liquibase-3.0.5-bin.zip"
                         },
                         "services" : {
                             "sysvinit" : {
