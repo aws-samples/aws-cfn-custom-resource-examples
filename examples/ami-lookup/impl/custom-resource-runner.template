@@ -156,7 +156,7 @@
                             "/etc/cfn/bridge.d/ami-lookup.conf" : {
                                 "content" : { "Fn::Join" : ["", [
                                     "[ami-lookup]\n",
-                                    "resource_type=AmiLookup\n",
+                                    "resource_type=Custom::AmiLookup\n",
                                     "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
                                     "timeout=60\n",
                                     "default_action=/home/ec2-user/lookup-ami.py -s ", { "Ref" : "AmiManifestUrl"}, " -r ", { "Ref" : "AWS::Region" }, " -t ", { "Ref" : "AuditLogTable" }

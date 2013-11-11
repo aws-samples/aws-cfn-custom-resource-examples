@@ -35,21 +35,19 @@
             }
         },
         "UbuntuAmi" : {
-            "Type" : "AWS::CloudFormation::CustomResource",
+            "Type" : "Custom::AmiLookup",
             "Version" : "1.0",
             "Properties" : {
                 "ServiceToken" : { "Ref" : "AmiLookupServiceToken" },
-                "ResourceType" : "AmiLookup",
                 "os": "ubuntu",
                 "arch": "64"
             }
         },
         "WindowsAmi" : {
-            "Type" : "AWS::CloudFormation::CustomResource",
+            "Type" : "Custom::AmiLookup",
             "Version" : "1.0",
             "Properties" : {
                 "ServiceToken" : { "Ref" : "AmiLookupServiceToken" },
-                "ResourceType" : "AmiLookup",
                 "os": "windows",
                 "arch": "32",
                 "version": "Server 2008"

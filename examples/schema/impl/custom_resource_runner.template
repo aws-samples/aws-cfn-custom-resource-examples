@@ -127,7 +127,7 @@
                             "/etc/cfn/bridge.d/schema.conf" : {
                                 "content" : { "Fn::Join" : ["", [
                                     "[schema]\n",
-                                    "resource_type=DatabaseSchema\n",
+                                    "resource_type=Custom::DatabaseSchema\n",
                                     "flatten=false\n",
                                     "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
                                     "timeout=600\n",

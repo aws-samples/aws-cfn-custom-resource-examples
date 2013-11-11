@@ -113,7 +113,7 @@
                             "/etc/cfn/bridge.d/mount.conf" : {
                                 "content" : { "Fn::Join" : ["", [
                                     "[mount]\n",
-                                    "resource_type=VolumeMount\n",
+                                    "resource_type=Custom::VolumeMount\n",
                                     "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
                                     "timeout=600\n",
                                     "create_action=/home/ec2-user/create.sh\n",
@@ -172,12 +172,11 @@
         },
 
         "ExampleVolumeMount" : {
-            "Type" : "AWS::CloudFormation::CustomResource",
+            "Type" : "Custom::VolumeMount",
             "Version" : "1.0",
             "DependsOn" : ["ExampleVolumeAttachment", "ExampleWaitCondition"],
             "Properties" : {
                 "ServiceToken" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceTopicARN"] },
-                "ResourceType" : "VolumeMount",
                 "Device" : "/dev/xvdh",
                 "MountPoint" : "/mnt/analysis",
                 "FsType" : "ext3",

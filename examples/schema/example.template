@@ -73,11 +73,10 @@
         },
 
         "MyDBSchema" : {
-            "Type" : "AWS::CloudFormation::CustomResource",
+            "Type" : "Custom::DatabaseSchema",
             "Version" : "1.0",
             "Properties" : {
                 "ServiceToken" : { "Ref" : "SchemaServiceToken" },
-                "ResourceType" : "DatabaseSchema",
                 "DatabaseURL" : {"Fn::Join" : ["", ["jdbc:mysql://", { "Fn::GetAtt" : ["MyDB", "Endpoint.Address"]}, ":", { "Fn::GetAtt" : ["MyDB", "Endpoint.Port"]}, "/", { "Ref" : "DBName" }]]},
                 "DatabaseUsername" : { "Ref" : "DBUser" },
                 "DatabasePassword" : { "Ref" : "DBPassword" },
