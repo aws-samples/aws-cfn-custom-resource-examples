@@ -92,7 +92,7 @@
                     "apt-get update || error_exit 'Failed to update package repository'\n",
                     "apt-get -y install python-pip || error_exit 'Failed to install python-pip'\n",
                     "pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
-                    "cfn-init -s ", { "Ref" : "AWS::StackName" }, " -r VncLaunchConfig || error_exit 'Failed to run cfn-init'\n",
+                    "cfn-init --region ", { "Ref" : "AWS::Region" }, " -s ", { "Ref" : "AWS::StackName" }, " -r VncLaunchConfig || error_exit 'Failed to run cfn-init'\n",
                     "/etc/init.d/vncserver start || error_exit 'Failed to start vnc server'\n",
                     "cfn-signal -e $? ", { "Fn::Base64" : { "Ref" : "VncWaitConditionHandle" }}, "\n"
                 ]] } }
