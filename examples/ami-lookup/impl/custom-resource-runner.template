@@ -61,7 +61,7 @@
         "CustomResourcePipeline" : {
             "Type" : "AWS::CloudFormation::Stack",
             "Properties" : {
-                "TemplateURL" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/cr-backend-substack-template.json"
+                "TemplateURL" : "https://s3.amazonaws.com/cloudformation-examples/cr-backend-substack-template.template"
             }
         },
 
