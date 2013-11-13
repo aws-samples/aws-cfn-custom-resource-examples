@@ -182,38 +182,38 @@
                                 ]]}
                             },
                             "/home/ec2-user/create-dns-processor.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/create-dns-processor.py",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/create-dns-processor.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/home/ec2-user/delete-dns-processor.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/delete-dns-processor.py",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/delete-dns-processor.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/home/ec2-user/update-dns-processor.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/update-dns-processor.py",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/update-dns-processor.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/home/ec2-user/dnsprocessor.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/dnsprocessor.py",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/dnsprocessor.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/home/ec2-user/runner.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/runner.py",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/runner.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
                             "/etc/init.d/cr-dns-processor" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/init/cr-dns-processor",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/init/cr-dns-processor",
                                 "mode" : "000755",
                                 "owner" : "root",
                                 "group" : "root"
                             },
                             "/home/ec2-user/cr-dns-processor" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/bin/cr-dns-processor",
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/bin/cr-dns-processor",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             }
