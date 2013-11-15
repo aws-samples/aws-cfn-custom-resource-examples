@@ -168,9 +168,7 @@
                                     "flatten=false\n",
                                     "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
                                     "timeout=30\n",
-                                    "create_action=/home/ec2-user/create-dns-processor.py -r ", { "Ref" : "AWS::Region" }, " -t ", { "Ref" : "NameStatusTable" }, " -p \"", { "Fn::GetAtt" : ["AutoScalingNotificationPipeline", "Outputs.CustomResourceTopicARN"] }, "\"\n",
-                                    "update_action=/home/ec2-user/update-dns-processor.py -r ", { "Ref" : "AWS::Region" }, " -t ", { "Ref" : "NameStatusTable" }, " -p \"", { "Fn::GetAtt" : ["AutoScalingNotificationPipeline", "Outputs.CustomResourceTopicARN"] }, "\"\n",
-                                    "delete_action=/home/ec2-user/delete-dns-processor.py -r ", { "Ref" : "AWS::Region" }, " -t ", { "Ref" : "NameStatusTable" }, "\n"
+                                    "default_action=/home/ec2-user/dns-processor-handler.py -r ", { "Ref" : "AWS::Region" }, " -t ", { "Ref" : "NameStatusTable" }, " -p \"", { "Fn::GetAtt" : ["AutoScalingNotificationPipeline", "Outputs.CustomResourceTopicARN"] }, "\"\n"
                                 ]]}
                             },
                             "/etc/cfn/cr-dns-processor.conf" : {
@@ -181,18 +179,8 @@
                                     "table=", { "Ref" : "NameStatusTable" }, "\n"
                                 ]]}
                             },
-                            "/home/ec2-user/create-dns-processor.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/create-dns-processor.py",
-                                "mode" : "000755",
-                                "owner" : "ec2-user"
-                            },
-                            "/home/ec2-user/delete-dns-processor.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/delete-dns-processor.py",
-                                "mode" : "000755",
-                                "owner" : "ec2-user"
-                            },
-                            "/home/ec2-user/update-dns-processor.py" : {
-                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/update-dns-processor.py",
+                            "/home/ec2-user/dns-processor-handler.py" : {
+                                "source" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/dns-mapping/impl/dns-processor-handler.py",
                                 "mode" : "000755",
                                 "owner" : "ec2-user"
                             },
@@ -224,9 +212,7 @@
                                     "enabled" : "true",
                                     "ensureRunning" : "true",
                                     "files" : ["/etc/cfn/bridge.d/dns-processor.conf",
-                                               "/home/ec2-user/create-dns-processor.py",
-                                               "/home/ec2-user/delete-dns-processor.py",
-                                               "/home/ec2-user/update-dns-processor.py"]
+                                               "/home/ec2-user/dns-processor-handler.py"]
                                 },
                                 "cr-dns-processor" : {
                                     "enabled" : "true",

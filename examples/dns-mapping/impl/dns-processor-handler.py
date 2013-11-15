@@ -27,15 +27,14 @@ try:
 except ImportError:
     import json
 
-
 handler = logging.StreamHandler(sys.stderr)
 handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
 logging.getLogger().addHandler(handler)
 
-log = logging.getLogger('create-dns-processor')
+log = logging.getLogger('dns-processor-handler')
 log.setLevel(logging.INFO)
 
-parser = ArgumentParser(prog='create-dns-processor')
+parser = ArgumentParser(prog='dns-processor-handler')
 parser.add_argument("-r", "--region", help="The region the DynamoDB table lives in", dest="region")
 parser.add_argument("-t", "--table", help="The DynamoDB table name to write name states", dest="table_name")
 parser.add_argument("-p", "--topic", help="The SNS Topic to send ASG notifications to", dest="topic")
@@ -53,23 +52,19 @@ if not options.region:
 
 try:
     event_obj = json.loads(os.environ.get('EventProperties'))
-    log.info(u"Received update event: %s", json.dumps(event_obj, indent=4))
+    log.info(u"Received event: %s", json.dumps(event_obj, indent=4))
 except ValueError:
     raise FatalError(u"Could not parse properties as JSON")
 
 resource_properties = event_obj.get('ResourceProperties')
-old_resource_properties = event_obj.get('OldResourceProperties')
 
 if not resource_properties:
     raise FatalError(u"ResourceProperties not found.")
 
-if not old_resource_properties:
-    raise FatalError(u"OldResourceProperties not found.")
-
 stack_id = event_obj['StackId']
 logical_id = event_obj['LogicalResourceId']
-old_physical_id = event_obj['PhysicalResourceId']
 request_id = event_obj['RequestId']
+request_type = event_obj['RequestType']
 
 hosted_zone_id = resource_properties.get('HostedZoneId')
 dns_pattern = resource_properties.get('DNSPattern')
@@ -82,4 +77,16 @@ if not dns_pattern:
 
 processor = DNSProcessor(options.topic, options.table_name, options.region)
 
-print processor.update_processor(old_physical_id, stack_id, logical_id, request_id, hosted_zone_id, dns_pattern)
+if request_type == 'Update':
+    old_resource_properties = event_obj.get('OldResourceProperties')
+    old_physical_id = event_obj['PhysicalResourceId']
+
+    if not old_resource_properties:
+        raise FatalError(u"OldResourceProperties not found.")
+
+    print processor.update_processor(old_physical_id, stack_id, logical_id, request_id, hosted_zone_id, dns_pattern)
+elif request_type == 'Create':
+    print processor.create_processor(stack_id, logical_id, request_id, hosted_zone_id, dns_pattern)
+elif request_type == 'Delete':
+    physical_id = event_obj['PhysicalResourceId']
+    print processor.delete_processor(physical_id, hosted_zone_id)
