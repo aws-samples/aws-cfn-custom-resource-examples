@@ -106,7 +106,6 @@ elif request_type == 'Update':
 
     # If the updated resource wants an EIP from a different pool
     if not pool == old_pool:
-
         # And get a new one
         physical_id = get_address(pool)
     else:
@@ -114,7 +113,6 @@ elif request_type == 'Update':
 
 elif request_type == 'Delete':
     address = os.getenv('Event_PhysicalResourceId')
-
     delete_address(pool, address)
 
 # Write out our successful response!
