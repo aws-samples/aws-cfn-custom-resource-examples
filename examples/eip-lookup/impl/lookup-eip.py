@@ -47,20 +47,10 @@ class FatalError(SystemExit):
 if not options.region or not options.table_name:
     raise FatalError(u"Service not configured to handle requests.")
 
-# Get the request type for this
+# Get the Request Type, Stack ID, and Logical Resource ID
 request_type = os.getenv('Event_RequestType')
-if not request_type:
-    raise FatalError(u"Event_RequestType was not valid.")
-
-# Get Stack ID
 stack_id = os.getenv('Event_StackId')
-if not stack_id:
-    raise FatalError(u"Event_StackId is a required attribute.")
-
-# Get Logical ID of this resource
 logical_id = os.getenv('Event_LogicalResourceId')
-if not logical_id:
-    raise FatalError(u"Event_LogicalResourceId is a required attribute.")
 
 # Get pool indicating where to get EIP from
 pool = os.getenv('Event_ResourceProperties_pool', 'default')
@@ -116,8 +106,6 @@ elif request_type == 'Update':
 
     # If the updated resource wants an EIP from a different pool
     if not pool == old_pool:
-        # Release the old address
-        delete_address(old_pool, old_address)
 
         # And get a new one
         physical_id = get_address(pool)
