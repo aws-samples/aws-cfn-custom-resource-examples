@@ -1,0 +1,241 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description" : "Example stack for EIP Lookup Custom Resource Backend.",
+
+    "Parameters" : {
+        "KeyName" : {
+            "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+            "Type" : "String"
+        },
+        "InstanceType" : {
+            "Description" : "Custom resource runner instance type",
+            "Type" : "String",
+            "Default" : "t1.micro",
+            "AllowedValues" : [ "t1.micro","m1.small","m1.medium","m1.large","m1.xlarge","m2.xlarge","m2.2xlarge","m2.4xlarge","m3.xlarge","m3.2xlarge","c1.medium","c1.xlarge","cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
+            "ConstraintDescription" : "must be a valid EC2 instance type."
+        },
+        "MinSize" : {
+            "Description" : "Minimum number of custom resource runners",
+            "Type" : "Number",
+            "MinValue" : "1",
+            "Default" : "1",
+            "ConstraintDescription" : "Must have at least one runner"
+        },
+        "MaxSize" : {
+            "Description" : "Maximum number of custom resource runners",
+            "Type" : "Number",
+            "MinValue" : "1",
+            "Default" : "1",
+            "ConstraintDescription" : "Must have at least one runner"
+        },
+        "SSHLocation" : {
+            "Description" : "The IP address range that can be used to SSH to the custom resource runners",
+            "Type" : "String",
+            "MinLength" : "9",
+            "MaxLength" : "18",
+            "Default" : "0.0.0.0/0",
+            "AllowedPattern" : "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription" : "must be a valid IP CIDR range of the form x.x.x.x/x."
+        },
+        "LookupEipScriptUrl" : {
+            "Description" : "The URL of the lookup-eip.py script",
+            "Type" : "String",
+            "Default" : "https://raw.github.com/awslabs/aws-cfn-custom-resource-examples/master/examples/eip-lookup/impl/lookup-eip.py"
+        }
+    },
+
+    "Mappings" : {
+        "AwsRegionToAMI" : {
+            "us-east-1" : { "id" : "ami-35792c5c" },
+            "us-west-2" : { "id" : "ami-d03ea1e0" },
+            "us-west-1" : { "id" : "ami-687b4f2d" },
+            "eu-west-1" : { "id" : "ami-149f7863" },
+            "ap-southeast-1" : { "id" : "ami-14f2b946" },
+            "ap-northeast-1" : { "id" : "ami-3561fe34" },
+            "ap-southeast-2" : { "id" : "ami-a148d59b" },
+            "sa-east-1" : { "id" : "ami-9f6ec982" }
+        }
+    },
+
+    "Resources" : {
+        "CustomResourcePipeline" : {
+            "Type" : "AWS::CloudFormation::Stack",
+            "Properties" : {
+                "TemplateURL" : "https://s3.amazonaws.com/cloudformation-examples/cr-backend-substack-template.template"
+            }
+        },
+
+        "EipTable" : {
+            "Type" : "AWS::DynamoDB::Table",
+            "Properties" : {
+                "KeySchema" : {
+                    "HashKeyElement": {
+                        "AttributeName" : "pool",
+                        "AttributeType" : "S"
+                    },
+                    "RangeKeyElement" : {
+                        "AttributeName" : "address",
+                        "AttributeType" : "S"
+                    }
+                },
+                "ProvisionedThroughput" : {
+                    "ReadCapacityUnits" : "1",
+                    "WriteCapacityUnits" : "3"
+                }
+            }
+        },
+
+        "RunnerRole" : {
+            "Type" : "AWS::IAM::Role",
+            "Properties" : {
+                "AssumeRolePolicyDocument" : {
+                    "Version": "2008-10-17",
+                    "Statement": [{
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ec2.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    }]
+                },
+                "Path" : "/",
+                "Policies" : [
+                    {
+                        "PolicyName" : "CustomResourceRunner",
+                        "PolicyDocument" : {
+                            "Statement" : [
+                                {
+                                    "Effect" : "Allow",
+                                    "Action" : ["sqs:ChangeMessageVisibility", "sqs:DeleteMessage", "sqs:ReceiveMessage"],
+                                    "Resource" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueARN"] }
+                                },
+                                {
+                                    "Effect" : "Allow",
+                                    "Action" : ["dynamodb:PutItem"],
+                                    "Resource" : { "Fn::Join" : ["", ["arn:aws:dynamodb:", {"Ref" : "AWS::Region"}, ":", {"Ref" : "AWS::AccountId"}, ":table/", { "Ref" : "EipTable" }]] }
+                                },
+                                {
+                                    "Effect" : "Allow",
+                                    "Action" : ["dynamodb:Query"],
+                                    "Resource" : { "Fn::Join" : ["", ["arn:aws:dynamodb:", {"Ref" : "AWS::Region"}, ":", {"Ref" : "AWS::AccountId"}, ":table/", { "Ref" : "EipTable" }]] }
+                                },
+                                {
+                                    "Effect" : "Allow",
+                                    "Action" : ["dynamodb:GetItem"],
+                                    "Resource" : { "Fn::Join" : ["", ["arn:aws:dynamodb:", {"Ref" : "AWS::Region"}, ":", {"Ref" : "AWS::AccountId"}, ":table/", { "Ref" : "EipTable" }]] }
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+
+        "RunnerInstanceProfile" : {
+            "Type" : "AWS::IAM::InstanceProfile",
+            "Properties" : {
+                "Path" : "/",
+                "Roles" : [ { "Ref" : "RunnerRole" } ]
+            }
+        },
+
+        "RunnerLaunchConfig" : {
+            "Type" : "AWS::AutoScaling::LaunchConfiguration",
+            "Properties" : {
+                "IamInstanceProfile" : { "Ref" : "RunnerInstanceProfile" },
+                "ImageId" : { "Fn::FindInMap" : ["AwsRegionToAMI", { "Ref" : "AWS::Region" }, "id"] },
+                "InstanceType" : { "Ref" : "InstanceType" },
+                "KeyName" : { "Ref" : "KeyName" },
+                "SecurityGroups" : [ { "Ref" : "RunnerSecurityGroup" } ],
+                "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
+                    "#!/bin/bash -x\n",
+                    "exec &> /home/ec2-user/userdata.log\n",
+                    "/opt/aws/bin/cfn-init --region ", { "Ref" : "AWS::Region" }, " -s ", { "Ref" : "AWS::StackId" }, " -r RunnerLaunchConfig -v\n",
+                    "/opt/aws/bin/cfn-signal -e $? ", { "Fn::Base64" : { "Ref" : "RunnerWaitConditionHandle" }}, "\n"
+                ]] } }
+            },
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "config" : {
+                        "packages" : {
+                            "rpm" : {
+                                "aws-cfn-resource-bridge" : "https://s3.amazonaws.com/cloudformation-examples/aws-cfn-resource-bridge-0.1-4.noarch.rpm"
+                            }
+                        },
+                        "files" : {
+                            "/etc/cfn/bridge.d/eip-lookup.conf" : {
+                                "content" : { "Fn::Join" : ["", [
+                                    "[eip-lookup]\n",
+                                    "resource_type=Custom::EipLookup\n",
+                                    "queue_url=", { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceQueueURL"] }, "\n",
+                                    "timeout=60\n",
+                                    "default_action=/home/ec2-user/lookup-eip.py -r ", { "Ref" : "AWS::Region" }, " -t ", { "Ref" : "EipTable" }
+                                ]]}
+                            },
+                            "/home/ec2-user/lookup-eip.py" : {
+                                "source" : { "Ref" : "LookupEipScriptUrl" },
+                                "mode" : "000755",
+                                "owner" : "ec2-user"
+                            }
+                        },
+                        "services" : {
+                            "sysvinit" : {
+                                "cfn-resource-bridge" : {
+                                    "enabled" : "true",
+                                    "ensureRunning" : "true",
+                                    "files" : ["/etc/cfn/bridge.d/eip-lookup.conf",
+                                               "/home/ec2-user/lookup-eip.py"]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+
+        "RunnerAutoScalingGroup" : {
+            "Type" : "AWS::AutoScaling::AutoScalingGroup",
+            "Properties" : {
+                "AvailabilityZones" : { "Fn::GetAZs" : ""},
+                "LaunchConfigurationName" : { "Ref" : "RunnerLaunchConfig" },
+                "MinSize" : { "Ref" : "MinSize" },
+                "MaxSize" : { "Ref" : "MaxSize" }
+            }
+        },
+
+        "RunnerSecurityGroup" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "Properties" : {
+                "GroupDescription" : "SSH to the runner instances",
+                "SecurityGroupIngress" : [
+                    {
+                        "CidrIp" : { "Ref" : "SSHLocation" },
+                        "FromPort" : "22",
+                        "ToPort" : "22",
+                        "IpProtocol" : "tcp"
+                    }
+                ]
+            }
+        },
+
+        "RunnerWaitConditionHandle" : {
+            "Type" : "AWS::CloudFormation::WaitConditionHandle"
+        },
+
+        "RunnerWaitCondition" : {
+            "Type" : "AWS::CloudFormation::WaitCondition",
+            "DependsOn" : "RunnerAutoScalingGroup",
+            "Properties" : {
+                "Count" : "1",
+                "Handle" : { "Ref" : "RunnerWaitConditionHandle" },
+                "Timeout" : "600"
+            }
+        }
+    },
+    "Outputs" : {
+        "ServiceToken" : {
+            "Value" : { "Fn::GetAtt" : ["CustomResourcePipeline", "Outputs.CustomResourceTopicARN"] },
+            "Description" : "Service token to use in CustomResource definitions"
+        }
+    }
+}

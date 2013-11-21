@@ -1,0 +1,6 @@
+# EIP Lookup Custom Resource
+This custom resource returns a pre-provisioned Elastic IP address that is stored in a DynamoDB table. It addresses the scenario where an EC2 instance needs a known EIP, usually because the address has been white-listed with a 3rd party.  This resource supports associating an EIP with a pool. For example, you might have a default pool of EIPs, and another pool used for interacting with a specific 3rd party API.
+
+EIPs and their pool association are stored in DynamoDB. An example DynamoDB table is provisioned by`impl/custom-resource-runner.template`.  The table schema designates the EIP pool name as the Hash Key, and the EIP address as the Range Key, allowing all addresses in a given pool to be efficiently retrieved. The custom resource uses consistent reads and conditional updates to ensure consistency, and supports updating the pool name of a resource.
+
+Although the above template provisions the required DynamoDB table to store EIPs and their pools, you must populate the table with values for existing EIP addresses. Use _default_ for the pool name if you do not require pooling.
